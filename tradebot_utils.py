@@ -3,7 +3,6 @@ from utils import *
 from config import CONFIG
 from candle.candlelist import CandleList
 from trade import Trade
-from pivot_utils import *
 
 import logging
 
