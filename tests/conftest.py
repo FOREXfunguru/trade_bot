@@ -1,6 +1,7 @@
 import pytest
 import glob
 import os
+import pdb
 
 from trade_bot import TradeBot
 
@@ -10,13 +11,14 @@ def env_setup(monkeypatch):
     Defining the environment
     """
     monkeypatch.setenv('DATADIR', '../data/')
-    monkeypatch.setenv('CONFIG_FILE', '../data/settings.ini')
 
 @pytest.fixture
 def clean_tmp():
     yield
     print("Cleanup files")
-    files = glob.glob(os.getenv('DATADIR')+"IMGS/pivots/*")
+    files1 = glob.glob(os.getenv('DATADIR')+"imgs/pivots/*")
+    files2 = glob.glob(os.getenv('DATADIR')+"imgs/srareas/*")
+    files = files1 + files2
     for f in files:
         os.remove(f)
 

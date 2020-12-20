@@ -1,8 +1,10 @@
 import pdb
 import pytest
 import datetime
+import os
 
 from tradebot_utils import *
+from config import CONFIG
 
 def test_get_max_min(tb_object, clean_tmp):
     """
@@ -17,10 +19,11 @@ def test_calc_SR(tb_object, clean_tmp):
     """
     Check 'calc_SR' function
     """
-    harealst = calc_SR(tb_object, adateObj=datetime(2019, 8, 12, 22, 0, 0))
+    harealst = calc_SR(tb_object, start=datetime(2015, 8, 12, 22, 0, 0),
+                       end=datetime(2019, 8, 12, 22, 0, 0))
 
     # check the length of HAreaList.halist
-    assert len(harealst.halist) == 1
+    assert len(harealst.halist) == 6
 
 def test_calc_SR1(tb_object, clean_tmp):
     """

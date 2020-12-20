@@ -1,6 +1,7 @@
 import pdb
 import pytest
 import datetime
+import os
 
 from trade_bot import TradeBot
 

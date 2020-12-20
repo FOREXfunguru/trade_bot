@@ -2,11 +2,13 @@ import logging
 import pdb
 import datetime
 import pandas as pd
+import os
 
 from oanda.connect import Connect
 from config import CONFIG
 from tradebot_utils import *
 from utils import *
+from candle.candle import *
 
 # create logger
 tb_logger = logging.getLogger(__name__)
@@ -192,7 +194,13 @@ class TradeBot(object):
 
         loop = 0
         tlist = []
-        tend = SRlst = None 
+        tend = SRlst = None
+        # calculate the start datetime for the CList that will be used
+        # for calculating the S/R areas
+        delta_period = periodToDelta(CONFIG.getint('counter', 'period'),
+                                     self.timeframe)
+        initc_date = startO-delta_period
+
         while startO <= endO:
             if tend is not None:
                 # this means that there is currently an active trade
@@ -208,8 +216,9 @@ class TradeBot(object):
                 if CONFIG.getboolean('trade_bot', 'load_SRlist') is True:
                     SRlst= dict_SRlist[startO]
                 else:
-                    pdb.set_trace()
-                    SRlst = calc_SR(tbO=self, adateObj=startO)
+                    SRlst = calc_SR(self,
+                                    start=initc_date,
+                                    end=startO)
                 res = SRlst.print()
                 dict_SRlist[startO] = SRlst
                 tb_logger.info("Identified HAreaList for time {0}:".format(startO.isoformat()))
@@ -220,24 +229,28 @@ class TradeBot(object):
                 if CONFIG.getboolean('trade_bot', 'load_SRlist') is True:
                     SRlst = dict_SRlist[startO]
                 else:
-                    SRlst = self.calc_SR(adateObj=startO)
+                    SRlst = self.calc_SR(start=initc_date,
+                                         end=startO)
                 res = SRlst.print()
                 dict_SRlist[startO] = SRlst
                 tb_logger.info("Identified HAreaList for time {0}:".format(startO.isoformat()))
                 tb_logger.info("{0}".format(res))
                 loop = 0
-
+            pdb.set_trace()
             # fetch candle for current datetime
             tb_logger.info("Fetching data from API")
             res = conn.query(start=startO.isoformat(),
                              count=1)
 
-            c_candle = res.candles[0] # this is the current candle that
-                                      # is being checked
+            # this is the current candle that
+            # is being checked
+            c_candle = Candle(dict_data=res['candles'][0])
+            c_candle.time = datetime.strptime(c_candle.time,
+                                              '%Y-%m-%dT%H:%M:%S.%fZ')
 
             # c_candle.time is not equal to startO
             # when startO is non-working day, for example
-            delta1hr = datetime.timedelta(hours=1)
+            delta1hr = timedelta(hours=1)
             if (c_candle.time != startO) and (abs(c_candle.time-startO) > delta1hr):
                 loop += 1
                 tb_logger.info("Analysed dt {0} is not the same than APIs returned dt {1}."
@@ -246,7 +259,7 @@ class TradeBot(object):
                 continue
 
             #check if there is any HArea overlapping with c_candle
-            HAreaSel, sel_ix = SRlst.onArea(candle=candle_list[0])
+            HAreaSel, sel_ix = SRlst.onArea(candle=c_candle)
 
             if HAreaSel is not None:
                 c_candle.set_candle_features()

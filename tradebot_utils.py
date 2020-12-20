@@ -3,6 +3,8 @@ from utils import *
 from config import CONFIG
 from candle.candlelist import CandleList
 from trade import Trade
+from harea import HArea, HAreaList
+import pandas as pd
 
 import logging
 
@@ -53,7 +55,7 @@ def get_max_min(tbO, adateObj):
 
     return round(max,4), round(min,4)
 
-def calc_SR(tbO, adateObj):
+def calc_SR(tbO, start, end):
     '''
     Function to calculate S/R lines
 
@@ -61,8 +63,10 @@ def calc_SR(tbO, adateObj):
     ----------
     tbO: TradeBot object
          Used for calculation
-    adateObj: datetime object used for identifying
-              S/R areas
+    start: start datetime object used for the CandleList to identify
+           S/R areas
+    end: end datetime object used for the CandleList to identify
+         S/R areas
 
     Return
     ------
@@ -70,8 +74,7 @@ def calc_SR(tbO, adateObj):
     '''
 
     # calculate price range for calculating S/R
-    ul, ll = get_max_min(tbO, adateObj)
-    pdb.set_trace()
+    ul, ll = get_max_min(tbO, end)
     tb_logger.info("Running calc_SR for estimated range: {0}-{1}".format(ll, ul))
 
     prices, bounces, score_per_bounce, tot_score = ([] for i in range(4))
@@ -80,6 +83,14 @@ def calc_SR(tbO, adateObj):
     prev_p = None
     p = float(ll)
 
+    conn = Connect(instrument=tbO.pair,
+                   granularity=tbO.timeframe)
+
+    res = conn.query(start=start.isoformat(),
+                     end=end.isoformat())
+    clO = CandleList(res)
+    PL = clO.get_pivotlist(th_bounces=CONFIG.getfloat('pivots', 'th_bounces'))
+
     while p <= float(ul):
         tb_logger.debug("Processing S/R at {0}".format(round(p, 4)))
         # each of 'p' will become a S/R that will be tested for bounces
@@ -87,33 +98,23 @@ def calc_SR(tbO, adateObj):
         entry = add_pips2price(tbO.pair, p, CONFIG.getint('trade_bot', 'i_pips'))
         # set S/L to price-self.settings.getint('trade_bot','i_pips')
         SL = substract_pips2price(tbO.pair, p, CONFIG.getint('trade_bot', 'i_pips'))
-        t = Trade(
-            id='{0}.{1}.detect_sr.{2}'.format(tbO.pair, adateObj.isoformat(), round(p, 5)),
-            start=adateObj.strftime('%Y-%m-%d %H:%M:%S'),
-            pair=tbO.pair,
-            timeframe=tbO.timeframe,
-            type='short',
-            entry=entry,
-            SR=p,
-            SL=SL,
-            RR=1.5,
-            strat='counter_b1')
-        # get a PivotList with a trade for this particular S/R
-        PL = get_pivots(t)
-        if len(PL.plist) == 0:
+
+        # get a PivotList for this particular S/R
+        newPL = PL.inarea_pivots(SR=p)
+        if len(newPL.plist) == 0:
             mean_pivot = 0
         else:
-            mean_pivot = round(t.score_pivot, 2)
+            mean_pivot = newPL.get_avg_score()
 
         prices.append(round(p, 5))
-        bounces.append(len(t.pivots.plist))
-        tot_score.append(t.total_score)
+        bounces.append(len(newPL.plist))
+        tot_score.append(newPL.get_score())
         score_per_bounce.append(mean_pivot)
         # increment price to following price.
         # Because the increment is made in pips
         # it does not suffer of the JPY pairs
         # issue
-        p = add_pips2price(tbO.pair, p, 2*tbO.CONFIG('trade_bot', 'i_pips'))
+        p = add_pips2price(tbO.pair, p, 2*CONFIG.getint('trade_bot', 'i_pips'))
         if prev_p is None:
             prev_p = p
         else:
@@ -137,13 +138,13 @@ def calc_SR(tbO, adateObj):
     score_th = dfgt2.tot_score.quantile(CONFIG.getfloat('trade_bot', 'th'))
 
     print("Selected number of pivot threshold: {0}".format(bounce_th))
-    print("Selected tot score threshold: {0}".format(score_th))
+    print("Selected tot score threshold: {0}".format(round(score_th,1)))
 
     # selecting records over threshold
     dfsel = df.loc[(df['bounces'] > bounce_th) | (df['tot_score'] > score_th)]
 
     # repeat until no overlap between prices
-    ret = self.__calc_diff(dfsel, increment_price)
+    ret = calc_diff(dfsel, increment_price)
     dfsel = ret[0]
     tog_seen = ret[1]
     while tog_seen is True:
@@ -156,13 +157,19 @@ def calc_SR(tbO, adateObj):
     for index, row in dfsel.iterrows():
         resist = HArea(price=row['price'],
                        pips=CONFIG.getint('pivots', 'hr_pips'),
-                       instrument=self.pair,
-                       granularity=self.timeframe,
+                       instrument=tbO.pair,
+                       granularity=tbO.timeframe,
                        no_pivots=row['bounces'],
                        tot_score=round(row['tot_score'], 5))
         halist.append(resist)
 
     halist = HAreaList(halist=halist)
+
+    # Plot the HAreaList
+    halist.plot(clO= clO, outfile=CONFIG.get("images", "outdir") +
+                                  "/srareas/{0}.{1}.halist.png".format(tbO.pair,
+                                                                      tbO.timeframe))
+
     tb_logger.info("Run done")
 
     return halist
