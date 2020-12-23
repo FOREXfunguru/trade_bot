@@ -7,5 +7,6 @@
     <orderEntry type="module" module-name="trading_journal" />
     <orderEntry type="module" module-name="FOREX" />
     <orderEntry type="module" module-name="API" />
+    <orderEntry type="module" module-name="entry_scripts" />
   </component>
 </module>
