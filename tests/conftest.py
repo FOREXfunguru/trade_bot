@@ -18,7 +18,8 @@ def clean_tmp():
     print("Cleanup files")
     files1 = glob.glob(os.getenv('DATADIR')+"imgs/pivots/*")
     files2 = glob.glob(os.getenv('DATADIR')+"imgs/srareas/*")
-    files = files1 + files2
+    files3 = glob.glob(os.getenv('DATADIR')+"imgs/fitted_line/*")
+    files = files1 + files2 + files3
     for f in files:
         os.remove(f)
 
@@ -27,6 +28,6 @@ def tb_object():
     tb = TradeBot(
             pair='EUR_GBP',
             timeframe='D',
-            start='2019-08-12 22:00:00',
-            end='2019-08-19 22:00:00')
+            start='2020-06-29 22:00:00',
+            end='2020-07-01 22:00:00')
     return tb
