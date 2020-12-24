@@ -296,5 +296,4 @@ class TradeBot(object):
         if len(tlist) == 0:
             return None
         else:
-            pdb.set_trace()
             return tlist

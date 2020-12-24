@@ -6,7 +6,6 @@ import logging
 
 from trade_bot import TradeBot
 from config import CONFIG
-from candle.candlelist import CandleList
 
 # create logger
 tb_logger = logging.getLogger(__name__)
