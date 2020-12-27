@@ -62,8 +62,8 @@ class TradeBot(object):
         SL = None
         ix = 0
         for c in reversed(clObj.data['candles']):
-            # only go back 10 candles
-            if ix == 10:
+            # only go back 5 candles
+            if ix == 5:
                 break
             ix += 1
             price = c[part]
