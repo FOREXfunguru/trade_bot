@@ -36,24 +36,6 @@ def test_run1():
 
     assert len(tl.tlist) == 2
 
-'''
-def test_run_D_wserialized(clean_tmp):
-    """
-    Run the trade_bot with serialized data
-    """
-
-    tb = TradeBot(
-        pair='AUD_CAD',
-        timeframe='D',
-        start='2014-01-01 22:00:00',
-        end='2014-08-20 22:00:00',
-        ser_data_f="/Users/ernesto/SCRATCH/FOREX/05_07_2020/DAILY/AUD_CAD.DTF.2004_2020.ser.data",
-        settingf="../../data/settings.ini")
-
-    tl = tb.run(pickled_file="../../FOREX/data/test.pickled")
-
-    assert len(tl.tlist) == 4
-
 def test_run2(clean_tmp):
     """
     Test tradebot on a really easy to identify
@@ -178,122 +160,6 @@ def test_run_H12(pair, start, end, len_tl, settings_obj, clean_tmp):
 
     assert len(tl.tlist) == len_tl
 
-def test_calc_SR(tb_object, clean_tmp):
-    """
-    Check 'calc_SR' function
-    """
-    harealst = tb_object.calc_SR()
-
-    # check the length of HAreaList.halist
-    assert len(harealst.halist) == 1
-
-def test_calc_SR1(tb_object, clean_tmp):
-    """
-    Check 'calc_SR' function
-    """
-    harealst = tb_object.calc_SR(datetime.datetime(2017, 6, 13, 22, 0))
-
-    # check the length of HAreaList.halist
-    assert len(harealst.halist) == 1
-
-def test_calc_SR2():
-    """
-    Check 'calc_SR' function for a H12 TradeBot
-    """
-    tb = TradeBot(
-        pair='EUR_GBP',
-        timeframe='H12',
-        start='2017-06-11 22:00:00',
-        end='2017-06-15 22:00:00',
-        settingf="../../data/settings.ini"
-    )
-
-    harealst = tb.calc_SR(datetime.datetime(2017, 6, 13, 22, 0))
-
-    # check the length of HAreaList.halist
-    assert len(harealst.halist) == 4
-
-def test_calc_SR3():
-    """
-    Check 'calc_SR' function for a H4 TradeBot
-    """
-    tb = TradeBot(
-        pair='EUR_GBP',
-        timeframe='H4',
-        start='2017-06-11 22:00:00',
-        end='2017-06-15 22:00:00',
-        settingf="../../data/settings.ini"
-    )
-
-    harealst = tb.calc_SR(datetime.datetime(2017, 6, 13, 22, 0))
-
-    # check the length of HAreaList.halist
-    assert len(harealst.halist) == 4
-
-def test_calc_SR4():
-    """
-    Check 'calc_SR' function for a particular problematic
-    detection
-    """
-    tb = TradeBot(
-        pair='AUD_USD',
-        timeframe='D',
-        start='2012-05-24 22:00:00',
-        end='2012-06-06 22:00:00',
-        settingf="../../data/settings.ini"
-    )
-
-    harealst = tb.calc_SR(datetime.datetime(2012, 5, 24, 22, 0))
-
-    assert len(harealst.halist) == 6
-
-def test_calc_SR5():
-    """
-    Check 'calc_SR' function for a USD_JPY problematic
-    detection
-    """
-    tb = TradeBot(
-        pair='GBP_JPY',
-        timeframe='D',
-        start='2018-12-20 22:00:00',
-        end='2019-01-17 22:00:00',
-        settingf="../../data/settings.ini"
-    )
-
-    harealst = tb.calc_SR(datetime.datetime(2019, 1, 7, 22, 0))
-
-    assert len(harealst.halist) == 6
-
-@pytest.mark.parametrize("pair,"
-                         "start,"
-                         "end,"
-                         "adatetime,"
-                         "halen",
-                         [('AUD_USD', '2020-03-10 05:00:00', '2020-04-01 05:00:00', '2020-03-20 05:00:00', 8),
-                          ('AUD_USD', '2019-09-01 21:00:00', '2019-09-05 13:00:00', '2019-09-03 05:00:00', 4),
-                          ('AUD_USD', '2018-06-05 09:00:00', '2018-06-11 21:00:00', '2018-06-07 05:00:00', 4),
-                          ('GBP_USD', '2020-02-06 10:00:00', '2020-02-11 14:00:00', '2020-02-10 02:00:00', 8),
-                          ('GBP_USD', '2020-01-10 10:00:00', '2020-01-15 18:00:00', '2020-01-13 10:00:00', 8)])
-def test_calc_SR_4hrs(pair, start, end, adatetime, halen, settings_obj, clean_tmp):
-    """
-    Check 'calc_SR' function for a H4 timeframe
-    """
-    settings_obj.set('pivots', 'th_bounces', '0.01')
-    settings_obj.set('trade_bot', 'th', '0.2')
-    settings_obj.set('trade_bot', 'period_range', '6000')
-
-    adatetimeObj = datetime.datetime.strptime(adatetime, "%Y-%m-%d %H:%M:%S")
-
-    tb = TradeBot(
-        pair=pair,
-        timeframe='H4',
-        start=start,
-        end=end,
-        settings=settings_obj)
-
-    harealst = tb.calc_SR(adatetimeObj)
-
-    assert len(harealst.halist) == halen
 
 @pytest.mark.parametrize("pair,"
                          "start,"
@@ -349,4 +215,3 @@ def test_calc_SR_H12hrs(pair, start, end, adatetime, halen, settings_obj, clean_
     harealst = tb.calc_SR(adatetimeObj)
 
     assert len(harealst.halist) == halen
-'''
