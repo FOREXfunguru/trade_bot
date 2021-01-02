@@ -79,7 +79,8 @@ class TradeBot(object):
 
         return SL
 
-    def prepare_trade(self, type, SL, ic, harea_sel, delta):
+    def prepare_trade(self, type, SL, ic, harea_sel, delta,
+                      add_pips):
         '''
         Prepare a Trade object
         and check if it is taken
@@ -95,6 +96,9 @@ class TradeBot(object):
         harea_sel : HArea of this trade
         delta : Timedelta object corresponding to
                 the time that needs to be increased
+        add_pips : Number of pips above/below SL and entry
+                   price to consider for recalculating
+                   the SL and entry. Default : None
 
         Returns
         -------
@@ -104,9 +108,21 @@ class TradeBot(object):
         if type == 'short':
             # entry price will be the low of IC
             entry_p = getattr(ic, "low{0}".format(CONFIG.get('general', 'bit')))
+            if add_pips is not None:
+                SL = round(add_pips2price(self.pair,
+                                          SL, add_pips), 4)
+                entry_p = round(substract_pips2price(self.pair,
+                                                     entry_p, add_pips), 4)
         elif type == 'long':
             # entry price will be the high of IC
             entry_p = getattr(ic, "high{0}".format(CONFIG.get('general', 'bit')))
+            if add_pips is not None:
+                entry_p = add_pips2price(self.pair,
+                                    entry_p, add_pips)
+                SL = substract_pips2price(self.pair,
+                                          SL, add_pips)
+
+
         startO = ic.time+delta
         t = Trade(
             id='{0}.bot'.format(self.pair),
@@ -156,20 +172,18 @@ class TradeBot(object):
             m1 = p1.match(self.timeframe)
             if m1:
                 nhours = int(self.timeframe.replace('H', ''))
-                delta = datetime.timedelta(hours=int(nhours))
+                delta = timedelta(hours=int(nhours))
 
         # convert to datetime the start and end for this TradeBot
         startO = pd.datetime.strptime(self.start, '%Y-%m-%d %H:%M:%S')
         endO = pd.datetime.strptime(self.end, '%Y-%m-%d %H:%M:%S')
-
-        dict_SRlist = {}
 
         loop = 0
         tlist = []
         tend = SRlst = None
         # calculate the start datetime for the CList that will be used
         # for calculating the S/R areas
-        delta_period = periodToDelta(CONFIG.getint('counter', 'period'),
+        delta_period = periodToDelta(CONFIG.getint('trade_bot', 'period_range'),
                                      self.timeframe)
         initc_date = startO-delta_period
         # Get now a CandleList from 'initc_date' to 'startO' which is the
@@ -191,20 +205,35 @@ class TradeBot(object):
             tb_logger.info("Trade bot - analyzing candle: {0}".format(startO.isoformat()))
             sub_clO = clO.slice(initc_date,
                                 startO)
+            dt_str = startO.strftime("%d_%m_%Y_%H_%M")
             if loop == 0:
-                SRlst = calc_SR(sub_clO)
+                outfile_txt = "{0}/srareas/{1}.{2}.{3}.halist.txt".format(CONFIG.get("images", "outdir"),
+                                                                        self.pair, self.timeframe, dt_str)
+                outfile_png = "{0}/srareas/{1}.{2}.{3}.halist.png".format(CONFIG.get("images", "outdir"),
+                                                                          self.pair, self.timeframe, dt_str)
+                SRlst = calc_SR(sub_clO, outfile=outfile_png)
+                f = open(outfile_txt, 'w')
                 res = SRlst.print()
-                dict_SRlist[startO] = SRlst
+                # print SR report to file
+                f.write(res)
+                f.close()
                 tb_logger.info("Identified HAreaList for time {0}:".format(startO.isoformat()))
                 tb_logger.info("{0}".format(res))
             elif loop >= CONFIG.getint('trade_bot',
                                        'period'):
                 # An entire cycle has occurred. Invoke .calc_SR
-                SRlst = calc_SR(sub_clO)
+                outfile_txt = "{0}/srareas/{1}.{2}.{3}.halist.txt".format(CONFIG.get("images", "outdir"),
+                                                                      self.pair, self.timeframe, dt_str)
+                outfile_png = "{0}/srareas/{1}.{2}.{3}.halist.png".format(CONFIG.get("images", "outdir"),
+                                                                          self.pair, self.timeframe, dt_str)
+                SRlst = calc_SR(sub_clO, outfile=outfile_png)
+                f = open(outfile_txt, 'w')
                 res = SRlst.print()
-                dict_SRlist[startO] = SRlst
                 tb_logger.info("Identified HAreaList for time {0}:".format(startO.isoformat()))
                 tb_logger.info("{0}".format(res))
+                # print SR report to file
+                f.write(res)
+                f.close()
                 loop = 0
 
             # fetch candle for current datetime
@@ -256,9 +285,11 @@ class TradeBot(object):
                         SL=SL,
                         ic=c_candle,
                         harea_sel=HAreaSel,
-                        delta=delta)
+                        delta=delta,
+                        add_pips=CONFIG.getint('trade', 'add_pips'))
                     t.tot_SR = len(SRlst.halist)
                     t.rank_selSR = sel_ix
+                    t.SRlst = SRlst
                     # calculate t.entry-t.SL in number of pips
                     # and discard if it is over threshold
                     diff = abs(t.entry-t.SL)
