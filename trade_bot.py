@@ -122,7 +122,6 @@ class TradeBot(object):
                 SL = substract_pips2price(self.pair,
                                           SL, add_pips)
 
-
         startO = ic.time+delta
         t = Trade(
             id='{0}.bot'.format(self.pair),
