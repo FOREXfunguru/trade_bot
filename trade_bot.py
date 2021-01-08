@@ -38,7 +38,7 @@ class TradeBot(object):
         self.pair = pair
         self.timeframe = timeframe
 
-    def adjust_SL(self, type, number=7, clObj):
+    def adjust_SL(self, type, clObj, number=7):
         '''
         Function to adjust the SL price
         to the most recent highest high/lowest low
@@ -47,10 +47,10 @@ class TradeBot(object):
         ----------
         type : str
                Trade type ('long'/ 'short')
+        clObj : CandleList obj
         number : int
                  Number of candles to go back
                  to adjust the SL. Default: 7
-        clObj : CandleList obj
 
         Returns
         -------
