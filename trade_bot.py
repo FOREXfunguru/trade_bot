@@ -292,16 +292,7 @@ class TradeBot(object):
                     t.tot_SR = len(SRlst.halist)
                     t.rank_selSR = sel_ix
                     t.SRlst = SRlst
-                    # calculate t.entry-t.SL in number of pips
-                    # and discard if it is over threshold
-                    diff = abs(t.entry-t.SL)
-                    number_pips = float(calculate_pips(self.pair, diff))
-                    if number_pips > CONFIG.getint('trade_bot', 'SL_width_pips'):
-                        loop += 1
-                        startO = startO + delta
-                        continue
-                    else:
-                        tlist.append(t)
+                    tlist.append(t)
             startO = startO+delta
             loop += 1
 
