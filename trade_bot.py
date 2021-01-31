@@ -161,9 +161,9 @@ class TradeBot(object):
         conn = Connect(instrument=self.pair,
                        granularity=self.timeframe)
 
-        ser_file = None
-        if CONFIG.has_option('general', 'ser_data_file'):
-            ser_file = CONFIG.get('general', 'ser_data_file')
+        ser_dir = None
+        if CONFIG.has_option('general', 'ser_data_dir'):
+            ser_dir = CONFIG.get('general', 'ser_data_dir')
 
         delta = nhours = None
         if self.timeframe == "D":
@@ -192,7 +192,7 @@ class TradeBot(object):
         # total time interval for this TradeBot
         res = conn.query(start=initc_date.isoformat(),
                          end=endO.isoformat(),
-                         infile=ser_file)
+                         indir=ser_dir)
 
         clO = CandleList(res)
         while startO <= endO:
@@ -241,7 +241,7 @@ class TradeBot(object):
             # fetch candle for current datetime
             res = conn.query(start=startO.isoformat(),
                              count=1,
-                             infile=ser_file)
+                             indir=ser_dir)
 
             # this is the current candle that
             # is being checked
