@@ -196,6 +196,7 @@ class TradeBot(object):
 
         clO = CandleList(res)
         while startO <= endO:
+
             if tend is not None:
                 # this means that there is currently an active trade
                 if startO <= tend:
