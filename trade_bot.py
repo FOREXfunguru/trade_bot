@@ -1,6 +1,7 @@
 import logging
 import pdb
 import datetime
+from datetime import datetime
 import pandas as pd
 import os
 
@@ -166,21 +167,21 @@ class TradeBot(object):
                 # guess the if trade is 'long' or 'short'
                 newCl = clO.slice(start=initc_date, end=c_candle.time)
                 type = get_trade_type(c_candle.time, newCl)
-                SL = self.adjust_SL(type, newCl )
-                prepare_trade = False
+                SL = adjust_SL(type, newCl, CONFIG.getint('trade_bot', 'n_SL'))
+                prepare = False
                 if c_candle.indecision_c(ic_perc=CONFIG.getint('general', 'ic_perc')) is True:
-                    prepare_trade = True
+                    prepare = True
                 elif type == 'short' and c_candle.colour == 'red':
-                    prepare_trade = True
+                    prepare = True
                 elif type == 'long' and c_candle.colour == 'green':
-                    prepare_trade = True
+                    prepare = True
 
                 # discard if IC falls on a Saturday
                 if c_candle.time.weekday() == 5 and discard_sat is True:
                     tb_logger.info("Possible trade at {0} falls on Sat. Skipping...".format(c_candle.time))
-                    prepare_trade = False
+                    prepare = False
 
-                if prepare_trade is True:
+                if prepare is True:
                     t = prepare_trade(
                         t_bot=self,
                         type=type,
@@ -209,20 +210,24 @@ class TradeDiscover(object):
 
     Class variables
     ---------------
-    now : datetime
+    start : datetime
     pair: str, Required
           Currency pair used in the trade. i.e. AUD_USD
     timeframe: str, Required
                Timeframe used for the trade. Possible values are: D,H12,H10,H8,H4
     '''
-    def __init__(self, pair, timeframe):
-        self.now = date.today()
+    def __init__(self, start, pair, timeframe):
+        self.start = start
         self.pair = pair
         self.timeframe = timeframe
 
     def run(self):
         """
-        Run the bot
+        Run the bot from self.start
+
+        Returns
+        -------
+        Trade object or none
         """
         tb_logger.info("Running...")
 
@@ -249,20 +254,20 @@ class TradeDiscover(object):
         delta_period = periodToDelta(CONFIG.getint('trade_bot', 'period_range'),
                                      self.timeframe)
 
-        initc_date = self.now - delta_period
+        initc_date = self.start - delta_period
         # Get now a CandleList from 'initc_date' to 'startO' which is the
         # total time interval for this TradeBot
-        res = conn.query(start=initc_date.isoformat(),
-                         end=self.now.isoformat(),
+        res = conn.query(start=initc_date.strftime("%Y-%m-%dT%H:%M:%S"),
+                         end=self.start.strftime("%Y-%m-%dT%H:%M:%S"),
                          indir=ser_dir)
         clO = CandleList(res)
-        dt_str = self.now.strftime("%d_%m_%Y_%H_%M")
+        dt_str = self.start.strftime("%d_%m_%Y_%H_%M")
         outfile_png = "{0}/srareas/{1}.{2}.{3}.halist.png".format(CONFIG.get("images", "outdir"),
                                                                   self.pair, self.timeframe, dt_str)
         SRlst = calc_SR(clO, outfile=outfile_png)
 
         # fetch candle for current datetime
-        res = conn.query(start=self.now.isoformat(),
+        res = conn.query(start=self.start.strftime("%Y-%m-%dT%H:%M:%S"),
                          count=1,
                          indir=ser_dir)
 
@@ -280,22 +285,24 @@ class TradeDiscover(object):
             # guess the if trade is 'long' or 'short'
             newCl = clO.slice(start=initc_date, end=c_candle.time)
             type = get_trade_type(c_candle.time, newCl)
-            SL = self.adjust_SL(type, newCl)
-            prepare_trade = False
+            SL = adjust_SL(type, newCl, CONFIG.getint('trade_bot', 'n_SL'))
+            prepare = False
             if c_candle.indecision_c(ic_perc=CONFIG.getint('general', 'ic_perc')) is True:
-                prepare_trade = True
+                prepare = True
             elif type == 'short' and c_candle.colour == 'red':
-                prepare_trade = True
+                prepare = True
             elif type == 'long' and c_candle.colour == 'green':
-                prepare_trade = True
+                prepare = True
 
             # discard if IC falls on a Saturday
             if c_candle.time.weekday() == 5 and discard_sat is True:
                 tb_logger.info("Possible trade at {0} falls on Sat. Skipping...".format(c_candle.time))
-                prepare_trade = False
+                prepare = False
 
-            if prepare_trade is True:
-                t = self.prepare_trade(
+            t = None
+            if prepare is True:
+                t = prepare_trade(
+                    tb_obj=self,
                     type=type,
                     SL=SL,
                     ic=c_candle,
@@ -305,5 +312,6 @@ class TradeDiscover(object):
                 t.tot_SR = len(SRlst.halist)
                 t.rank_selSR = sel_ix
                 t.SRlst = SRlst
+            return t
+        tb_logger.info("Run done")
 
-    tb_logger.info("Run done")
