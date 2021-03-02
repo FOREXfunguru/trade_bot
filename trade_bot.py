@@ -56,7 +56,6 @@ class TradeBot(object):
         were taken
         '''
         tb_logger.info("Running...")
-
         conn = Connect(instrument=self.pair,
                        granularity=self.timeframe)
 
@@ -183,7 +182,7 @@ class TradeBot(object):
 
                 if prepare is True:
                     t = prepare_trade(
-                        t_bot=self,
+                        tb_obj=self,
                         type=type,
                         SL=SL,
                         ic=c_candle,
